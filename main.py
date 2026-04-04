@@ -69,6 +69,22 @@ def set_playlists(music_dir: str):
 
     print(f"✓ '{music_dir}': worked through all files.")
 
+def set_empty_playlists(music_dir: str):
+    for filename in os.listdir(music_dir):
+        if not filename.endswith(".mp3"):
+            continue
+        try:
+            audio = ID3(os.path.join(music_dir, filename))
+            playlists = read_playlists(audio)
+            if(len(playlists) == 0):
+                cmd = input(f"Update the playlists of [{filename}]: {playlists}? [enter/new playlists] ")
+                if cmd and cmd != "n":
+                    change_playlists(audio, cmd.split())
+        except Exception:
+            continue
+
+    print(f"✓ '{music_dir}': worked through all files.")
+
 def create_playlist(playlist_name: str, music_dir: str, output_dir: str = "output/"):
     matches = []
 
@@ -459,19 +475,20 @@ def update_all_metadata(music_dir: str):
 
     print("Done. All files updated.")
 
-def read_all_metadata(music_dir: str):
+def read_all_metadata(music_dir: str, condition: bool):
     mp3_files = [f for f in os.listdir(music_dir) if f.endswith(".mp3")]
 
     print(f"Found {len(mp3_files)} mp3 files in {music_dir}\n")
 
     for filename in mp3_files:
         read_metadata(music_dir + "\\" + filename)
+        print("---------------------------------------------------------------")
 
     print("Done. All files read.")
 
 
 # --------------------------------------------------------------------
-print("-d to download\n-u to update (-a for all files)\n-r to read metadata (-a for all files)\n-cp to create playlists\n-sp set playlists")
+print("-d to download\n-u to update (-a for all files)\n-r to read metadata (-a for all files)\n-cp to create playlists\n-sp to set playlists (-ep for empty playlists)")
 
 cmd = "-"
 rep = input("One type of operation? [Y/n] ") != 'n'
@@ -495,6 +512,12 @@ if rep:
         dir = input("Directory: ")
         while dir != "exit" and dir != "quit":
             read_all_metadata(dir)
+            print("-------------------------- Successs! --------------------------")
+            dir = input("Directory: ")
+    elif(cmd == "-sp -ep"):
+        dir = input("Directory: ")
+        while dir != "exit" and dir != "quit":
+            set_empty_playlists(dir)
             print("-------------------------- Successs! --------------------------")
             dir = input("Directory: ")
     elif(cmd == "-u"):
@@ -536,6 +559,10 @@ else:
         elif(cmd == "-r -a"):
             dir = input("Directory: ")
             read_all_metadata(dir)
+            print("-------------------------- Successs! --------------------------")
+        elif(cmd == "-sp -ep"):
+            dir = input("Directory: ")
+            set_empty_playlists(dir)
             print("-------------------------- Successs! --------------------------")
         elif(cmd == "-u"):
             dir = input("File path: ")

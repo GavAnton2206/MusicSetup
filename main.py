@@ -54,6 +54,42 @@ def read_playlists(audio):
             return tuple(frame.text)
     return ()
 
+def set_playlists(music_dir: str):
+    for filename in os.listdir(music_dir):
+        if not filename.endswith(".mp3"):
+            continue
+        try:
+            audio = ID3(os.path.join(music_dir, filename))
+            playlists = read_playlists(audio)
+            cmd = input(f"Update the playlists of [{filename}]: {playlists}? [enter/new playlists] ")
+            if cmd and cmd != "n":
+                change_playlists(audio, cmd.split())
+        except Exception:
+            continue
+
+    print(f"✓ '{music_dir}': worked through all files.")
+
+def create_playlist(playlist_name: str, music_dir: str, output_dir: str = "output/"):
+    matches = []
+
+    for filename in os.listdir(music_dir):
+        if not filename.endswith(".mp3"):
+            continue
+        try:
+            audio = ID3(os.path.join(music_dir, filename))
+            playlists = read_playlists(audio)
+            if playlist_name in playlists:
+                matches.append(filename)
+        except Exception:
+            continue
+
+    playlist_path = os.path.join(output_dir, f"{safe_filename(playlist_name)}.m3u8")
+    with open(playlist_path, "w", encoding="utf-8") as f:
+        for filename in sorted(matches):
+            f.write(f"../Library/{filename}\n")
+
+    print(f"✓ '{playlist_name}': {len(matches)} tracks → {playlist_path}")
+
 def get_youtube_title(url: str) -> str:
     try:
         yt = YouTube(url)
@@ -210,7 +246,7 @@ def get_metadata_with_fallback(artist: str, title: str) -> dict:
     elif confirm == "m":
         return prompt_manual_metadata(meta)
 
-    meta["playlists"] = input("What playlists the music should be in? (space-separated)").split()
+    meta["playlists"] = input("What playlists the music should be in? (space-separated) ").split()
 
     return meta
 
@@ -361,7 +397,7 @@ def update_metadata_file(file_path: str):
     name = filename
     music_dir = os.path.dirname(file_path)
 
-    cmd = input("Update the file with metadata from internet? [Y/n] ")
+    cmd = input(f"Update the file [{filename}] with metadata from internet? [Y/n] ")
 
     if cmd == "n":
         meta = manual_metadata_from_file_with_fallback(file_path)
@@ -419,36 +455,102 @@ def update_all_metadata(music_dir: str):
     print(f"Found {len(mp3_files)} mp3 files in {music_dir}\n")
 
     for filename in mp3_files:
-        update_metadata_file(filename, music_dir)
+        update_metadata_file(music_dir + "\\" + filename)
 
     print("Done. All files updated.")
 
+def read_all_metadata(music_dir: str):
+    mp3_files = [f for f in os.listdir(music_dir) if f.endswith(".mp3")]
+
+    print(f"Found {len(mp3_files)} mp3 files in {music_dir}\n")
+
+    for filename in mp3_files:
+        read_metadata(music_dir + "\\" + filename)
+
+    print("Done. All files read.")
+
 
 # --------------------------------------------------------------------
-print("-d for download, -u for update")
-cmd = input("Working with: ")
+print("-d to download\n-u to update (-a for all files)\n-r to read metadata (-a for all files)\n-cp to create playlists\n-sp set playlists")
 
-if(cmd == "-d"):
-    url = input("URL: ")
-    while url != "exit" and url != "quit":
-        download_music(url)
-        print("-------------------------- Successs! --------------------------")
+cmd = "-"
+rep = input("One type of operation? [Y/n] ") != 'n'
+
+if rep:
+    cmd = input("Working with: ")
+
+    if(cmd == "-d"):
         url = input("URL: ")
-elif(cmd == "-r"):
-    dir = input("File path: ")
-    while dir != "exit" and dir != "quit":
-        read_metadata(dir)
-        print("---------------------------------------------------------------")
+        while url != "exit" and url != "quit":
+            download_music(url)
+            print("-------------------------- Successs! --------------------------")
+            url = input("URL: ")
+    elif(cmd == "-r"):
         dir = input("File path: ")
-elif(cmd == "-u"):
-    dir = input("File path: ")
-    while dir != "exit" and dir != "quit":
-        update_metadata_file(dir)
-        print("-------------------------- Successs! --------------------------")
-        dir = input("File path: ")
-elif(cmd == "-u -a"):
-    dir = input("Directory: ")
-    while dir != "exit" and dir != "quit":
-        update_all_metadata(dir)
-        print("-------------------------- Successs! --------------------------")
+        while dir != "exit" and dir != "quit":
+            read_metadata(dir)
+            print("---------------------------------------------------------------")
+            dir = input("File path: ")
+    elif(cmd == "-r -a"):
         dir = input("Directory: ")
+        while dir != "exit" and dir != "quit":
+            read_all_metadata(dir)
+            print("-------------------------- Successs! --------------------------")
+            dir = input("Directory: ")
+    elif(cmd == "-u"):
+        dir = input("File path: ")
+        while dir != "exit" and dir != "quit":
+            update_metadata_file(dir)
+            print("-------------------------- Successs! --------------------------")
+            dir = input("File path: ")
+    elif(cmd == "-u -a"):
+        dir = input("Directory: ")
+        while dir != "exit" and dir != "quit":
+            update_all_metadata(dir)
+            print("-------------------------- Successs! --------------------------")
+            dir = input("Directory: ")
+    elif(cmd == "-cp"):
+        playlist_name = input("Playlist name: ")
+        while playlist_name != "exit" and playlist_name != "quit":
+            dir = input("Music directory: ")
+            create_playlist(playlist_name=playlist_name, music_dir=dir)
+            print("-------------------------- Successs! --------------------------")
+            playlist_name = input("Playlist name: ")
+    elif(cmd == "-sp"):
+        dir = input("Music directory: ")
+        while dir != "exit" and dir != "quit":
+            set_playlists(dir)
+            print("-------------------------- Successs! --------------------------")
+            dir = input("Music directory: ")
+else:
+    cmd = input("Operation: ")
+    while cmd != "quit" and cmd != "exit":
+        if(cmd == "-d"):
+            url = input("URL: ")
+            download_music(url)
+            print("-------------------------- Successs! --------------------------")
+        elif(cmd == "-r"):
+            dir = input("File path: ")
+            read_metadata(dir)
+            print("---------------------------------------------------------------")
+        elif(cmd == "-r -a"):
+            dir = input("Directory: ")
+            read_all_metadata(dir)
+            print("-------------------------- Successs! --------------------------")
+        elif(cmd == "-u"):
+            dir = input("File path: ")
+            update_metadata_file(dir)
+            print("-------------------------- Successs! --------------------------")
+        elif(cmd == "-u -a"):
+            dir = input("Directory: ")
+            update_all_metadata(dir)
+            print("-------------------------- Successs! --------------------------")
+        elif(cmd == "-cp"):
+            playlist_name = input("Playlist name: ")
+            dir = input("Music directory: ")
+            create_playlist(playlist_name=playlist_name, music_dir=dir)
+            print("-------------------------- Successs! --------------------------")
+        elif(cmd == "-sp"):
+            dir = input("Music directory: ")
+            set_playlists(dir)
+            print("-------------------------- Successs! --------------------------")

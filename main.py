@@ -155,6 +155,17 @@ def get_itunes_metadata(artist: str, title: str) -> dict:
 def parse_artists(yt_title: str) -> tuple[str, str, str]:
     clean = yt_title.split(" | ")[0].strip()
 
+    trash = ["[Official Lyric Video]", "(Official Lyric Video)",
+             "[Lyric Video]", "(Lyric Video)",
+             "[Official Music Video]", "(Official Music Video)",
+             "[Music Video]", "(Music Video)",
+              "[Official Audio]", "(Official Audio)",
+              "[Live Performance]", "(Live Performance)",
+              "[Extended]", "(Extended)"]
+    
+    for word in trash:
+        clean = clean.replace(word, "")
+
     dash_parts = clean.split(" - ", 1)
     artists_raw = dash_parts[0].strip()
     title_and_feat = dash_parts[1].strip() if len(dash_parts) > 1 else ""
@@ -436,6 +447,8 @@ def update_metadata_file(file_path: str):
         # try to parse "Artist - Title" from filename
         if " - " in name:
             artist, title = name.split(" - ", 1)
+        elif " : " in name:
+            artist, title = name.split(" : ", 1)
         else:
             artist, title = get_artist_from_mp3(file_path), name
             if(artist == ""):
